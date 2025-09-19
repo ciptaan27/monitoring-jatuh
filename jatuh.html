@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Pengkajian & Pantauan Pasien</title>
+    <style>
+        body {
+            font-family: Arial;
+            padding: 20px;
+            background: #f0f2f5;
+        }
+
+        h2,
+        h3 {
+            color: #333;
+        }
+
+        form {
+            background: #fff;
+            padding: 15px;
+            margin-bottom: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        }
+
+        label {
+            display: block;
+            margin: 8px 0;
+        }
+
+        select,
+        input[type="checkbox"],
+        input[type="text"] {
+            margin-left: 10px;
+        }
+
+        button {
+            margin-top: 10px;
+            padding: 8px 12px;
+            border-radius: 5px;
+            border: none;
+            background: #4CAF50;
+            color: #fff;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background: #45a049;
+        }
+
+        #hasil,
+        #riwayat,
+        #riwayatShift {
+            background: #fff;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+
+        th,
+        td {
+            border: 1px solid #ddd;
+            padding: 6px;
+            text-align: center;
+        }
+
+        th {
+            background: #f2f2f2;
+        }
+
+        .rendah {
+            background-color: #c6efce;
+        }
+
+        /* hijau */
+        .sedang {
+            background-color: #fff2cc;
+        }
+
+        /* kuning */
+        .tinggi {
+            background-color: #f4cccc;
+        }
+
+        /* merah */
+    </style>
+</head>
+
+<body>
+
+    <h2>Pengkajian Risiko Jatuh Pasien</h2>
+    <form id="formPengkajian">
+        <label>Nama Perawat/User:
+            <input type="text" name="userPengkajian" placeholder="Masukkan nama">
+        </label>
+
+        <label>Riwayat Jatuh:
+            <select name="riwayatJatuh">
+                <option value="0">Tidak</option>
+                <option value="1">Ya</option>
+            </select>
+        </label>
+
+        <label>Mobilitas:
+            <select name="mobilitas">
+                <option value="mandiri">Mandiri</option>
+                <option value="bantuan">Butuh Bantuan</option>
+                <option value="kursi">Kursi Roda</option>
+            </select>
+        </label>
+
+        <label>Obat Sedatif:
+            <input type="checkbox" name="obatSedatif">
+        </label>
+
+        <label>Kelemahan Otot:
+            <input type="checkbox" name="kelemahanOtot">
+        </label>
+
+        <label>Gangguan Penglihatan:
+            <input type="checkbox" name="gangguanPenglihatan">
+        </label>
+
+        <button type="button" onclick="tambahPengkajian()">Pengkajian Baru / Ulang</button>
+    </form>
+
+    <h3>Hasil Pengkajian Terakhir:</h3>
+    <div id="hasil">Belum ada pengkajian.</div>
+
+    <h3>Filter Riwayat:</h3>
+    <label>Filter berdasarkan tanggal (yyyy-mm-dd):
+        <input type="date" id="filterTanggal">
+    </label>
+    <label>Filter berdasarkan Perawat/User:
+        <input type="text" id="filterUser" placeholder="Nama perawat">
+    </label>
+    <button onclick="tampilkanRiwayat()">Terapkan Filter</button>
+
+    <h3>Riwayat Pengkajian:</h3>
+    <div id="riwayat">Belum ada pengkajian.</div>
+
+    <hr>
+
+    <h3>Pantauan Setiap Shift</h3>
+    <form id="formPantauShift">
+        <label>Nama Perawat/User:
+            <input type="text" name="userShift" placeholder="Masukkan nama">
+        </label>
+        <label><input type="checkbox" name="pantau" value="aktivitas"> mintalah bantuan perawat jika melakukan aktivitas</label>
+        <label><input type="checkbox" name="pantau" value="kebersihan"> mintalah bantuan kepada petugas kebersihan untuk merapikan ruangan</label>
+        <label><input type="checkbox" name="pantau" value="bel"> dekatkan bel untuk memanggil perawat</label>
+        <label><input type="checkbox" name="pantau" value="pintu"> Biarkan pintu tidak terkunci</label>
+        <label><input type="checkbox" name="pantau" value="lampu"> Gunakan lampu pada malam hari serta pagar tempat tidur dipasang</label>
+        <label><input type="checkbox" name="pantau" value="pintu"> Biarkan pintu tidak terkunci</label>
+        <label>Shift:
+            <select name="shift">
+                <option value="Pagi">Pagi</option>
+                <option value="Siang">Siang</option>
+                <option value="Malam">Malam</option>
+            </select>
+        </label>
+
+        <button type="button" onclick="simpanPantauShift()">Simpan Pantauan</button>
+    </form>
+
+    <h3>Riwayat Pantauan Shift:</h3>
+    <div id="riwayatShift">Belum ada pantauan shift.</div>
+
+    <script>
+        let riwayatData = [];
+        let riwayatShift = [];
+
+        // Fungsi hitung skor
+        function hitungSkor(data) {
+            let skor = 0;
+            skor += data.riwayatJatuh ? 25 : 0;
+            skor += (data.mobilitas === 'bantuan') ? 15 : (data.mobilitas === 'kursi') ? 20 : 0;
+            skor += data.obatSedatif ? 15 : 0;
+            skor += data.kelemahanOtot ? 10 : 0;
+            skor += data.gangguanPenglihatan ? 5 : 0;
+
+            let risiko = '';
+            if (skor >= 45) risiko = 'Tinggi';
+            else if (skor >= 25) risiko = 'Sedang';
+            else risiko = 'Rendah';
+
+            let tindakan = '';
+            if (risiko === 'Tinggi') tindakan = 'Pantau ketat, gunakan alat bantu, edukasi, laporan ke dokter';
+            else if (risiko === 'Sedang') tindakan = 'Pantau rutin, pasang tanda, edukasi pasien';
+            else tindakan = 'Edukasi pasien & keluarga';
+
+            return { skor, risiko, tindakan };
+        }
+
+        // Tambah pengkajian baru / ulang
+        function tambahPengkajian() {
+            const form = document.forms['formPengkajian'];
+            const data = {
+                user: form.userPengkajian.value || 'Unknown',
+                riwayatJatuh: form.riwayatJatuh.value === "1",
+                mobilitas: form.mobilitas.value,
+                obatSedatif: form.obatSedatif.checked,
+                kelemahanOtot: form.kelemahanOtot.checked,
+                gangguanPenglihatan: form.gangguanPenglihatan.checked,
+                tanggal: new Date().toLocaleString()
+            };
+
+            const hasil = hitungSkor(data);
+            data.skor = hasil.skor;
+            data.risiko = hasil.risiko;
+            data.tindakan = hasil.tindakan;
+
+            riwayatData.push(data);
+            tampilkanHasil(data);
+            tampilkanRiwayat();
+
+            // Reset form otomatis
+            form.reset();
+        }
+
+        // Tampilkan hasil pengkajian terakhir
+        function tampilkanHasil(data) {
+            document.getElementById('hasil').innerHTML = `
+    Perawat/User: ${data.user}<br>
+    Skor: ${data.skor} <br>
+    Risiko: ${data.risiko} <br>
+    Tindakan: ${data.tindakan} <br>
+    Waktu: ${data.tanggal}
+  `;
+        }
+
+        // Tampilkan riwayat pengkajian (dengan filter)
+        function tampilkanRiwayat() {
+            const filterTanggal = document.getElementById('filterTanggal').value;
+            const filterUser = document.getElementById('filterUser').value.toLowerCase();
+
+            const filteredData = riwayatData.filter(d => {
+                let tanggalMatch = filterTanggal ? d.tanggal.includes(filterTanggal) : true;
+                let userMatch = filterUser ? d.user.toLowerCase().includes(filterUser) : true;
+                return tanggalMatch && userMatch;
+            });
+
+            if (filteredData.length === 0) {
+                document.getElementById('riwayat').innerHTML = 'Tidak ada data sesuai filter.';
+                return;
+            }
+
+            let html = '<table><tr><th>No</th><th>Tanggal</th><th>Perawat/User</th><th>Skor</th><th>Risiko</th><th>Tindakan</th></tr>';
+            filteredData.forEach((item, index) => {
+                let kelas = item.risiko.toLowerCase();
+                html += `<tr class="${kelas}">
+      <td>${index + 1}</td>
+      <td>${item.tanggal}</td>
+      <td>${item.user}</td>
+      <td>${item.skor}</td>
+      <td>${item.risiko}</td>
+      <td>${item.tindakan}</td>
+    </tr>`;
+            });
+            html += '</table>';
+            document.getElementById('riwayat').innerHTML = html;
+        }
+
+        // Pantauan shift
+        function simpanPantauShift() {
+            const form = document.forms['formPantauShift'];
+            const checked = Array.from(form.pantau)
+                .filter(c => c.checked)
+                .map(c => c.value);
+            const dataShift = {
+                waktu: new Date().toLocaleString(),
+                shift: form.shift.value,
+                user: form.userShift.value || 'Unknown',
+                pantauan: checked
+            };
+            riwayatShift.push(dataShift);
+            tampilkanRiwayatShift();
+
+            form.reset();
+        }
+
+        // Tampilkan riwayat pantauan shift
+        function tampilkanRiwayatShift() {
+            if (riwayatShift.length === 0) {
+                document.getElementById('riwayatShift').innerHTML = 'Belum ada pantauan shift.';
+                return;
+            }
+            let html = '<table><tr><th>No</th><th>Waktu</th><th>Shift</th><th>Perawat/User</th><th>Pantauan</th></tr>';
+            riwayatShift.forEach((item, index) => {
+                html += `<tr>
+      <td>${index + 1}</td>
+      <td>${item.waktu}</td>
+      <td>${item.shift}</td>
+      <td>${item.user}</td>
+      <td>${item.pantauan.join(', ')}</td>
+    </tr>`;
+            });
+            html += '</table>';
+            document.getElementById('riwayatShift').innerHTML = html;
+        }
+    </script>
+
+</body>
+
+</html>
